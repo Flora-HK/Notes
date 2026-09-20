@@ -2,9 +2,8 @@ name: Sync Notion Notes
 
 on:
   schedule:
-    # 每天 UTC 02:00（北京时间 10:00）执行
     - cron: '0 2 * * *'
-  workflow_dispatch: # 也支持手动触发
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -27,7 +26,7 @@ jobs:
       - name: Run sync
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_ROOT_PAGE_ID: ${{ secrets.NOTION_ROOT_PAGE_ID }}
+          NOTION_PAGE_IDS: ${{ secrets.NOTION_PAGE_IDS }}
           OUTPUT_DIR: notes
         run: python sync.py
 
