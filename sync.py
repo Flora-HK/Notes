@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""同步多个 Notion 根页面（每个对应一个顶层目录）。"""
+"""同步多个 Notion 根页面（支持直接粘贴分享链接）。"""
 import os
 import re
 import sys
@@ -7,7 +7,7 @@ from pathlib import Path
 from notion_client import Client
 
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
-PAGE_SPEC = os.environ["NOTION_PAGE_IDS"]
+PAGE_SPEC = os.environ.get("NOTION_PAGE_IDS", "")
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "notes")
 
 notion = Client(auth=NOTION_TOKEN)
@@ -20,18 +20,37 @@ def clean_filename(name: str) -> str:
     return name[:80] or "untitled"
 
 
+def extract_page_id(raw: str) -> str:
+    """从 32位ID / UUID / 完整分享链接 中提取 page id。"""
+    s = raw.strip()
+    s = re.split(r'[?#]', s)[0]                      # 去掉 ?query / #fragment
+    runs = re.findall(r'[0-9a-fA-F]{8,}', s.replace('-', ''))
+    joined = "".join(runs)
+    if len(joined) >= 32:
+        return joined[-32:]
+    if joined:
+        return joined
+    return re.sub(r'[^0-9a-fA-F]', '', s)
+
+
 def parse_pages(spec: str):
-    """解析 'alias1:id1,alias2:id2,id3' 这种格式。"""
+    """解析 '别名:ID或链接' / 纯 'ID或链接'，支持逗号和换行分隔。
+    注意：http(s):// 中的冒号不会被当作别名分隔符。
+    """
     pages = []
-    for item in spec.split(","):
+    for item in re.split(r'[,\n]', spec):
         item = item.strip()
         if not item:
             continue
-        if ":" in item:
-            alias, pid = item.split(":", 1)
-            pages.append((alias.strip(), pid.strip()))
+        m = re.match(r'^(?!https?://)([^:]+):(.+)$', item, re.IGNORECASE)
+        if m:
+            alias = m.group(1).strip()
+            pid = extract_page_id(m.group(2))
         else:
-            pages.append((None, item))
+            alias = None
+            pid = extract_page_id(item)
+        if pid:
+            pages.append((alias, pid))
     return pages
 
 
@@ -61,11 +80,11 @@ def rich_text_to_md(rich_text: list) -> str:
         text = rt.get("plain_text", "")
         ann = rt.get("annotations", {}) or {}
         href = rt.get("href")
-        if ann.get("code"):    text = f"`{text}`"
-        if ann.get("bold"):    text = f"**{text}**"
-        if ann.get("italic"):  text = f"*{text}*"
-        if ann.get("strikethrough"): text = f"~~{text}~~"
-        if href:               text = f"[{text}]({href})"
+        if ann.get("code"):            text = f"`{text}`"
+        if ann.get("bold"):            text = f"**{text}**"
+        if ann.get("italic"):          text = f"*{text}*"
+        if ann.get("strikethrough"):   text = f"~~{text}~~"
+        if href:                       text = f"[{text}]({href})"
         out.append(text)
     return "".join(out)
 
@@ -137,7 +156,8 @@ def walk(page_id: str, out_dir: Path, alias: str | None = None):
 def main():
     pages = parse_pages(PAGE_SPEC)
     if not pages:
-        print("NOTION_PAGE_IDS 为空", file=sys.stderr); sys.exit(1)
+        print("NOTION_PAGE_IDS 为空", file=sys.stderr)
+        sys.exit(1)
 
     out = Path(OUTPUT_DIR)
     if out.exists():
@@ -148,7 +168,7 @@ def main():
 
     print(f"开始同步 {len(pages)} 个根页面 -> {OUTPUT_DIR}/")
     for alias, pid in pages:
-        print(f"-- {alias or '(使用页面原标题)'}: {pid}")
+        print(f"-- {alias or '(使用页面原标题)'} : {pid}")
         walk(pid, out, alias)
     print("全部同步完成。")
 
@@ -157,4 +177,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"失败: {e}", file=sys.stderr); sys.exit(1)
+        print(f"失败: {e}", file=sys.stderr)
+        sys.exit(1)
