@@ -4,9 +4,5 @@
 
 一、数据库分类：
 
-1. 关系型数据库：MySQL，Oracle，DB2，SQL Sever
-1. 由二维表及其之间的联系所组成的一个数据结构，数据结构是表，可以使用结构化查询语言SQL对数据库进行操作
-1. 非关系型数据库：Redis，MongoDB，Memcached，HBase。
-
-
+二、连接MySQL
 
