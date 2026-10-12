@@ -40,7 +40,8 @@ project_dir = Path.cwd() / "project"
 ```python
 from pathlib import Path
 
-p = Path("e:/Codework/project/data/report.xlsx")
+# Path对象是不可变的
+p = Path("e:/Codework/project/data/report.xlsx") 
 
 print(p.name)       # report.xlsx      文件名（含扩展名）
 print(p.stem)       # report           文件名（不含扩展名）
@@ -50,11 +51,11 @@ print(p.parent)     # e:\Codework\project\data   父目录
 print(p.parent.parent)  # e:\Codework\project     祖父目录
 print(p.parts)      # ('e:\\', 'Codework', 'project', 'data', 'report.xlsx')
 
-# 修改后缀
+# 修改路径的后缀（不生成新文件）
 new_p = p.with_suffix(".csv")
 print(new_p)        # e:\Codework\project\data\report.csv
 
-# 修改文件名
+# 修改路径的文件名（不生成新文件）
 new_p = p.with_stem("summary")
 print(new_p)        # e:\Codework\project\data\summary.xlsx
 ```
@@ -99,7 +100,7 @@ for py_file in base.glob("*.py"):
 
 # 递归匹配所有 .md 文件（包括子目录）
 for md_file in base.rglob("*.md"):
-    rel_path = md_file.relative_to(base)
+    rel_path = md_file.relative_to(base) # 当前路径md_file相对于base路径的相对路径（表现出来就是返回的路径中“base”这部分被去掉了）
     print(rel_path)
 
 # 复杂匹配
@@ -160,7 +161,7 @@ print(f"大小:{stat.st_size} bytes")          # 文件大小
 print(f"修改时间:{stat.st_mtime}")            # 最后修改时间戳
 ```
 
-### 3.7 文件与目录管理
+### 7. 文件与目录管理
 
 ```python
 from pathlib import Path
@@ -182,7 +183,7 @@ Path("new_file.txt").touch()
 Path("empty_dir").rmdir()
 ```
 
-### 3.8 综合应用：目录扫描器
+### 8. 综合应用：目录扫描器
 
 ```python
 from pathlib import Path
